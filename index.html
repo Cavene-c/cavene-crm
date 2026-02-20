@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cavéne CRM</title>
+<style>
+body { font-family: Arial; margin:0; padding:0; background:#f5f5f5;}
+header{background:#1E1E99;color:white;padding:1rem;text-align:center;}
+.sidebar {width:220px; background:#333; color:white; position:fixed; top:0; bottom:0; padding-top:60px;}
+.sidebar a{display:block; color:white; padding:0.8rem; text-decoration:none;}
+.sidebar a:hover{background:#444;}
+.main {margin-left:220px; padding:1rem;}
+.boxes {display:flex; gap:1rem; margin-bottom:1rem;}
+.box {background:white; padding:1rem; flex:1; text-align:center; border-radius:8px; box-shadow:0 2px 5px rgba(0,0,0,0.1);}
+table{width:100%; border-collapse:collapse; background:white;}
+th, td{border:1px solid #ddd; padding:0.5rem; text-align:left;}
+th{background:#1E1E99; color:white;}
+button{padding:0.5rem 1rem; background:#FF9900; color:white; border:none; border-radius:5px; cursor:pointer;}
+</style>
+</head>
+<body>
+<header>Cavéne CRM</header>
+<div class="sidebar">
+<a href="#" onclick="showTab('leads')">LEADS</a>
+<a href="#" onclick="showTab('qualified')">QUALIFIED PROCESS</a>
+<a href="#" onclick="showTab('projects')">PROJECTS</a>
+</div>
+<div class="main">
+<div id="leadsTab" class="tabContent">
+  <h2>Leads</h2>
+  <div class="boxes">
+    <div class="box" id="totalLeads">Total Leads: 0</div>
+    <div class="box" id="qualifiedLeads">Qualified: 0</div>
+    <div class="box" id="needFollowUp">Need Follow Up: 0</div>
+  </div>
+  <button onclick="addLead()">+ Add Lead</button>
+  <table id="leadsTable">
+    <thead>
+      <tr><th>Name</th><th>Phone</th><th>Date Added</th><th>Last Follow-up</th><th>Action</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
+<div id="qualifiedTab" class="tabContent" style="display:none;"><h2>Qualified Process</h2></div>
+<div id="projectsTab" class="tabContent" style="display:none;"><h2>Projects</h2></div>
+</div>
+
+<script>
+const API_URL = "https://script.google.com/macros/s/AKfycbyQaJx7w4FG17GUa6BMsEAgjb4T71ZShaTFKkXDMLqTAiyTlvyCzqNv59QvG-CzCqMd/exec";
+
+// Switch tabs
+function showTab(tab){document.querySelectorAll('.tabContent').forEach(t=>t.style.display='none'); document.getElementById(tab+'Tab').style.display='block';}
+
+// Fetch leads
+async function fetchLeads(){
+  const res = await fetch(API_URL,{method:'POST',body:JSON.stringify({action:'getLeads'})});
+  const data = await res.json();
+  populateLeads(data);
+}
+
+// Populate leads table
+function populateLeads(leads){
+  const tbody = document.querySelector('#leadsTable tbody');
+  tbody.innerHTML='';
+  leads.forEach(l=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML=`<td>${l.LeadName}</td><td>${l.Phone}</td><td>${l.DateAdded}</td><td>${l.LastFollowUp}</td>
+    <td><button onclick='addCommentPrompt("${l.LeadName}")'>Add Comment</button></td>`;
+    tbody.appendChild(tr);
+  });
+  document.getElementById('totalLeads').innerText = "Total Leads: "+leads.length;
+}
+
+// Add lead
+function addLead(){
+  const name = prompt("Lead Name");
+  const phone = prompt("Phone");
+  const lead={LeadName:name, Phone:phone, DateAdded:new Date().toLocaleDateString(), LastFollowUp:"", WayFound:"", CommentHistory:"", Status:"In Progress", AssignedTo:""};
+  fetch(API_URL,{method:'POST',body:JSON.stringify({action:'addLead', lead})}).then(()=>fetchLeads());
+}
+
+// Add comment
+function addCommentPrompt(leadName){
+  const comment = prompt("Comment");
+  const commentObj={ItemType:'Lead', ItemName:leadName, Text:comment, By:'Admin'};
+  fetch(API_URL,{method:'POST',body:JSON.stringify({action:'addComment', comment:commentObj})}).then(()=>alert('Comment added'));
+}
+
+// Initial load
+fetchLeads();
+</script>
+</body>
+</html>
